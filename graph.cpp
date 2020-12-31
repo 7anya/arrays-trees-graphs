@@ -27,6 +27,7 @@ void addEdge(vector<int> adj[], int v, int u) {
 void addEdge(vector<pair<int, int>> adj[], int v, int u, int weight) {
     //method for weighted edges;
     adj[v].pb(mp(u, weight));
+//    adj[u].pb(mp(v, weight));
 }
 
 void printGraph(vector<int> adj[], int v) {
@@ -194,30 +195,28 @@ void dijkstraSSSP(vector<pair<int, int>> adj[], int n, int start) {
 
 }
 
-void bellmanFordSSSP(vector<pair<int, int>> adj[], int n,int start) {
+void bellmanFordSSSP(vector<pair<int, int>> adj[], int n, int start) {
 //O(EV)
 
-vi D(n,INT_MAX);
-D[start]=0;
-    for (int i = 0; i <= n-1; ++i) {
-        for(auto edge:adj[i])
-        {
-            if(D[i]+edge.second<D[edge.first])
-                D[edge.first]=D[i]+edge.second;
+    vi D(n, INT_MAX);
+    D[start] = 0;
+    for (int i = 0; i <= n - 1; ++i) {
+        for (auto edge:adj[i]) {
+            if (D[i] + edge.second < D[edge.first])
+                D[edge.first] = D[i] + edge.second;
         }
 
     }
-    for (int i = 0; i <= n-1; ++i) {
-        for(auto edge:adj[i])
-        {
-            if(D[i]+edge.second<D[edge.first])
-                D[edge.first]=-INT_MAX;
+    for (int i = 0; i <= n - 1; ++i) {
+        for (auto edge:adj[i]) {
+            if (D[i] + edge.second < D[edge.first])
+                D[edge.first] = -INT_MAX;
 
         }
 
     }
-    for(auto x:D)
-        cout<<x<<" ";
+    for (auto x:D)
+        cout << x << " ";
 }
 
 
@@ -233,12 +232,128 @@ void TSP_Dp(int adj[], int n) {
     ;
 }
 
-void EulerPath(int adj[], int n) {
-    ;
+bool graphHasEulerianPath(vector<pair<int, int>> adj[], int n, vi in, vi out) {
+    int start = 0, end = 0;
+    for (int i = 0; i < n; ++i) {
+        if (out[i] - in[i] > 1 || in[i] - out[i] > 1)
+            return false;
+        else if (out[i] - in[i] == 1)
+            start++;
+        else if (out[i] - in[i] == -1)
+            end++;
+        return (end == 0 && start == 0) || (end == 1 && start == 1);
+
+    }
+
 }
 
-void primsMST(int adj[], int n) {
-    ;
+int findStartNode(vector<pair<int, int>> adj[], int n, vi in, vi out) {
+    int start = 0;
+    for (int i = 0; i < n; ++i) {
+        if (out[i] - in[i] == 1)
+            return i;
+        if (out[i] > 0)
+            start = i;
+    }
+    return start;
+
+}
+
+void dfsEulerPath(int at, vector<pair<int, int>> adj[], int n, vi in, vi out, vi &path) {
+    while (out[at] != 0) {
+        pair<int, int> next_edge = adj[at][--out[at]];
+        dfsEulerPath(next_edge.first, adj, n, in, out, path);
+    }
+    path.push_back(at);
+//    cout << at << " ";
+
+}
+
+void EulerPath(vector<pair<int, int>> adj[], int n, int m) {
+//    O(E)
+    vi in(n, 0);
+    vi out(n, 0);
+    vi path;
+//countInOutDegrees();
+    for (int i = 0; i < n; i++)
+        for (auto edge:adj[i]) {
+            out[i]++;
+            in[edge.first]++;
+
+        }
+
+    if (!graphHasEulerianPath(adj, n, in, out)) {
+
+        cout << "No euler path" << endl;
+
+    } else
+        dfsEulerPath(findStartNode(adj, n, in, out), adj, n, in, out, path);
+    reverse(all(path));
+    for (auto x:path)
+        cout << x << "->";
+    if (path.size() == m + 1)
+    {
+        cout<<"yeet\n";
+        for (auto x:path)
+            cout << x << "->";
+    }
+
+    else
+        cout << "\nNO path";
+}
+
+priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<pair<int, pair<int, int>>>>
+addEdgeMST(vector<pair<int, int>> adj[], int nodeIndex, bool visited[],
+           priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<pair<int, pair<int, int>>>> pq) {
+    visited[nodeIndex] = true;
+    for (auto edge: adj[nodeIndex]) {
+        if (!visited[edge.first])
+            pq.push(mp(edge.second, mp(nodeIndex, edge.first)));
+    }
+    return pq;
+}
+
+void primsMST(vector<pair<int, int>> adj[], int n, int start = 0) {
+//    structure of pq-> pair{edge weight, pair{start node,end node}}
+    priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<pair<int, pair<int, int>>>> pq;
+    bool visited[n];
+    memset(visited, false, sizeof(visited));
+    int m = n - 1; //total number of edges in MST;
+    int edgeCount = 0, mstCost = 0;
+    vector<pair<int, pair<int, int>>> mstEdges(m);
+    visited[start] = true;
+    for (auto edge: adj[start]) {
+        if (!visited[edge.first])
+            pq.push(mp(edge.second, mp(start, edge.first)));
+    }
+
+    while (!pq.empty() && edgeCount != m) {
+        pair<int, pair<int, int>> edge = pq.top();
+        pq.pop();
+
+        int nodeIndex = edge.second.second;
+        if (visited[nodeIndex])
+            continue;
+        mstEdges[edgeCount++] = edge;
+        mstCost += edge.first;
+        visited[nodeIndex] = true;
+        for (auto edge: adj[nodeIndex]) {
+            if (!visited[edge.first])
+                pq.push(mp(edge.second, mp(nodeIndex, edge.first)));
+        }
+
+    }
+    if (edgeCount != m) {
+        cout << "\nNO MINIMUM SPANNING TREE \n:" << mstCost;
+
+    } else {
+        cout << "MST cost:" << mstCost << endl;
+        for (auto edge:mstEdges) {
+            cout << edge.second.first << "->" << edge.second.second << "weight:" << edge.first << endl;
+
+        }
+    }
+
 }
 
 void KruskalsMST(int adj[], int n) {
@@ -250,39 +365,50 @@ int32_t main() {
     cin.tie(NULL);
     int V = 5; //no of vertexx;
     vi adj[V];
-    vector<pair<int, int>> weightedGraph[V];
-    addEdge(adj, 0, 1);
-    addEdge(adj, 0, 2);
-    addEdge(adj, 1, 4);
-    addEdge(adj, 2, 3);
+    vector<pair<int, int>> weightedGraph[7];
+//    addEdge(adj, 0, 1);
+//    addEdge(adj, 0, 2);
+//    addEdge(adj, 1, 4);
+//    addEdge(adj, 2, 3);
+//
+//    printGraph(adj, V);
+//    bool visited[V];
+//    for (int i = 0; i < V; ++i) {
+//        visited[i] = false;
+//    }
+//    cout << "DFS" << endl;
+//    DFS(0, adj, V, visited);
+//    cout << "\nBFS" << endl;
+//    SolveBFS(adj, V, 0);
+//    cout << "\nreconstruct path btw 1 & 3";
+//    BFS_reconstructPath(adj, V, 1, 3);
+//    cout << "Topological Sort:\n";
+//    topologicalSort(adj, V);
+    addEdge(weightedGraph, 1, 2, 0);
+    addEdge(weightedGraph, 1, 3, 8);
 
-    printGraph(adj, V);
-    bool visited[V];
-    for (int i = 0; i < V; ++i) {
-        visited[i] = false;
-    }
-    cout << "DFS" << endl;
-    DFS(0, adj, V, visited);
-    cout << "\nBFS" << endl;
-    SolveBFS(adj, V, 0);
-    cout << "\nreconstruct path btw 1 & 3";
-    BFS_reconstructPath(adj, V, 1, 3);
-    cout << "Topological Sort:\n";
-    topologicalSort(adj, V);
-    int a=0,b=1,c=2,d=3,e=4;
-    addEdge(weightedGraph, a, b, -1);
-    addEdge(weightedGraph, a, c, 4);
-    addEdge(weightedGraph, b, c, 3);
-    addEdge(weightedGraph, b, d, 2);
-    addEdge(weightedGraph, b, e, 2);
-    addEdge(weightedGraph, d, c, 5);
-    addEdge(weightedGraph, d, b, 1);
-    addEdge(weightedGraph, e, d, -3);
+    addEdge(weightedGraph, 2, 2, 2);
+    addEdge(weightedGraph, 2, 4, 6);
+    addEdge(weightedGraph, 2, 4, 4);
 
-    cout << "dijkstra's:\n";
-    dijkstraSSSP(weightedGraph, V, 0);
-    cout<<"\nBellman Ford\n";
-    bellmanFordSSSP(weightedGraph,V,0);
+    addEdge(weightedGraph, 3, 5, 5);
+    addEdge(weightedGraph, 3, 1, 1);
+    addEdge(weightedGraph, 3, 2, 1);
 
+    addEdge(weightedGraph, 4, 6, 2);
+    addEdge(weightedGraph, 4, 3, 3);
+
+    addEdge(weightedGraph, 5, 6, 5);
+    addEdge(weightedGraph, 6, 3, 1);
+
+
+    V = 6;
+//    cout << "dijkstra's:\n";
+//    dijkstraSSSP(weightedGraph, V, 0);
+//    cout << "\nBellman Ford\n";
+//    bellmanFordSSSP(weightedGraph, V, 0);
+//    primsMST(weightedGraph, V, 1);
+    cout << "Eulerian Path:\n";
+    EulerPath(weightedGraph, 7, 12);
     return 0;
 }
